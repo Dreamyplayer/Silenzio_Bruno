@@ -1,0 +1,28 @@
+{
+  "name": "silenzio_bruno",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "♔ Dяεαмү アlαүεя ♔",
+  "license": "Apache-2.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node app.js",
+    "pretest": "eslint --fix --ignore-path .gitignore .",
+    "prettier": "prettier --write src/**/*.js",
+    "prepublishOnly": "yarn run pretest && yarn run prettier && yarn run dev"
+  },
+  "dependencies": {
+    "chalk": "^5.0.1",
+    "discord.js": "^13.6.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.11.0",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-strongloop": "^2.1.0",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "^2.6.0"
+  }
+}
