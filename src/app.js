@@ -1,7 +1,8 @@
 import chalk from 'chalk';
 import { Client, Collection } from 'discord.js';
-import dotenv from 'dotenv';
-dotenv.config();
+import { config } from 'dotenv';
+import { readdirSync } from 'node:fs';
+config();
 
 const client = new Client({
   shards: 'auto',
@@ -23,9 +24,24 @@ client.cooldowns = new Collection();
 client.aliases = new Map();
 const unhandledRejections = new Map();
 
-client.once('ready', () => {
-  console.log('Ready!');
-});
+// Commands Handler
+const commandFiles = readdirSync('./src/commands').filter(file => file.endsWith('.js'));
+for (const file of commandFiles) {
+  const command = await import(`./commands/${file}`);
+  client.commands.set(command.data.name, command);
+}
+
+// Events Handler
+const eventFiles = readdirSync('./src/events').filter(file => file.endsWith('.js'));
+
+for (const file of eventFiles) {
+  const event = await import(`./events/${file}`);
+  if (event.once) {
+    client.once(event.name, (...args) => event.execute(...args));
+  } else {
+    client.on(event.name, (...args) => event.execute(...args));
+  }
+}
 
 // NodeJs Events Error Handling
 process.on('unhandledRejection', (error, promise) => {
