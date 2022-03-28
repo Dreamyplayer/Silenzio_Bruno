@@ -25,14 +25,14 @@ client.aliases = new Map();
 const unhandledRejections = new Map();
 
 // Commands Handler
-const commandFiles = readdirSync('./src/commands').filter(file => file.endsWith('.js'));
+const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
   const command = await import(`./commands/${file}`);
   client.commands.set(command.data.name, command);
 }
 
 // Events Handler
-const eventFiles = readdirSync('./src/events').filter(file => file.endsWith('.js'));
+const eventFiles = readdirSync('./events').filter(file => file.endsWith('.js'));
 
 for (const file of eventFiles) {
   const event = await import(`./events/${file}`);
