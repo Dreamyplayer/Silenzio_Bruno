@@ -51,3 +51,7 @@ config.js
 
 # Misc
 .jsdoc.json
+
+# Developments
+Database/
+test.js

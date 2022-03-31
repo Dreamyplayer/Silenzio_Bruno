@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { Client, Collection } from 'discord.js';
 import { config } from 'dotenv';
+import Keyv from 'keyv';
 import { readdirSync } from 'node:fs';
 config();
 
@@ -15,13 +16,18 @@ const client = new Client({
   restRequestTimeout: 25000,
   restSweepInterval: 60,
   retryLimit: 1,
-  intents: ['GUILDS', 'GUILD_MEMBERS', 'GUILD_BANS'],
+  intents: ['GUILDS', 'GUILD_MEMBERS', 'GUILD_BANS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS'],
 });
+
+// Database Setup
+const modlogs = new Keyv('sqlite://Database/modlogs.sqlite');
+modlogs.on('error', err => console.error('CONNECTION ERROR:', chalk.green(err)));
 
 // Setting
 client.commands = new Collection();
 client.cooldowns = new Collection();
 client.aliases = new Map();
+client.db = modlogs;
 const unhandledRejections = new Map();
 
 // Commands Handler
@@ -42,6 +48,8 @@ for (const file of eventFiles) {
     client.on(event.name, (...args) => event.execute(...args));
   }
 }
+
+client.on('warn', console.log);
 
 // NodeJs Events Error Handling
 process.on('unhandledRejection', (error, promise) => {

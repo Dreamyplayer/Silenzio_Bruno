@@ -9,7 +9,6 @@ export function execute(client) {
     const type = ['WATCHING', 'LISTENING'];
     let ranType = randomNoRepeats(type)();
 
-    console.log(ranType);
     clearInterval(intervalId);
 
     setTimeout(() => {

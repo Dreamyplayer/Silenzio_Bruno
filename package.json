@@ -10,15 +10,17 @@
     "dev": "node app.js",
     "cmd": "node deploy-commands.js",
     "lint": "eslint --fix --ignore-path .gitignore .",
-    "prettier": "prettier --write src/**/*.js",
+    "prettier": "prettier --write . '!**/*.{js}'",
     "build": "yarn run lint && yarn run prettier && yarn run dev"
   },
   "dependencies": {
     "@discordjs/builders": "^0.12.0",
     "@discordjs/rest": "^0.3.0",
+    "@keyv/sqlite": "^3.0.0",
     "discord-api-types": "^0.30.0",
     "discord.js": "^13.6.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "keyv": "^4.1.1"
   },
   "devDependencies": {
     "chalk": "^5.0.1",
