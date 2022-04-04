@@ -1,16 +1,16 @@
+import chalk from 'chalk';
 export const name = 'interactionCreate';
 export async function execute(interaction) {
   if (!interaction.isCommand()) return;
-
-  const command = interaction.client.commands.get(interaction.commandName);
+  const client = interaction.client;
+  const command = client.commands.get(interaction.commandName);
 
   if (!command) return;
 
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error(error);
+    console.error(`${chalk.bgGreen('[INTERACTION ERROR]')} ${error}`);
     await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
   }
-  console.log(`${interaction.user.tag} in #${interaction.channel.name} triggered an interaction.`);
 }

@@ -9,7 +9,11 @@ export async function execute(message) {
   if (message.channel.type === 'dm') return;
   const client = message.client;
 
-  let prefix = '|';
+  const prefix = await client.db
+    .get(`BOT_${message.guild.id}`)
+    .then(data => data?.prefix ?? '|')
+    .catch(console.error);
+
   // Message Handler
   const escapeRegex = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -28,7 +32,8 @@ export async function execute(message) {
 
   const args = message.content.split(/ +/g);
   const command = args.shift().slice(matchedPrefix.length).toLowerCase();
-  const cmd = client.commands.get(command) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(command));
+  const cmd =
+    client.commands.get(command) || client.commands.find(cmd => cmd.data.aliases && cmd.data.aliases.includes(command));
 
   if (!message.content.toLowerCase().startsWith(prefix)) return;
 
@@ -54,13 +59,13 @@ export async function execute(message) {
     );
 
   // Coool Downs . . .D.js
-  if (!client.cooldowns.has(cmd.name)) {
-    client.cooldowns.set(cmd.name, new Collection());
+  if (!client.cooldowns.has(cmd.data.name)) {
+    client.cooldowns.set(cmd.data.name, new Collection());
   }
 
   const now = Date.now();
-  const timestamps = client.cooldowns.get(cmd.name);
-  const cooldownAmount = (cmd.cooldown || 3) * 1000;
+  const timestamps = client.cooldowns.get(cmd.data.name);
+  const cooldownAmount = (cmd.data.cooldown || 3) * 1000;
 
   if (timestamps.has(message.author.id)) {
     const expirationTime = timestamps.get(message.author.id) + cooldownAmount;

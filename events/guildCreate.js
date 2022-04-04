@@ -15,5 +15,5 @@ export async function execute(guild) {
     MuteRoleID: 'Moderator',
   });
 
-  client.db.set(`BANS_`, []);
+  client.db.set(`BANS_`, {});
 }

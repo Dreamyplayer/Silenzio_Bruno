@@ -7,15 +7,15 @@ import { data } from './config.js';
 const { CLIENT_ID, GUILD_ID } = data;
 config();
 
-const rest = new REST({ version: '9' }).setToken(process.env.TOKEN);
-
 const commands = [];
-const commandFiles = readdirSync('./commands/slash/').filter(file => file.endsWith('.js'));
+const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-  const command = await import(`./commands/slash/${file}`);
+  const command = await import(`./commands/${file}`);
   commands.push(command.data.toJSON());
 }
+
+const rest = new REST({ version: '9' }).setToken(process.env.TOKEN);
 
 (async () => {
   try {
