@@ -1,9 +1,12 @@
 export const name = 'ready';
 export const once = true;
-import { Anime, Music } from '../collection.js';
+import { Anime, Music } from '../utils/collection.js';
 import { randomNoRepeats } from '../utils/functions.js';
 
 export function execute(client) {
+  const minutes = randomNoRepeats([720000, 360000, 960000, 480000])(); // 12, 6, 16, 8 - minutes
+  const hours = randomNoRepeats([1800000, 2700000, 3600000])(); // 30, 45, 60 - minutes
+
   let intervalId;
   setInterval(() => {
     const type = ['WATCHING', 'LISTENING'];
@@ -26,7 +29,7 @@ export function execute(client) {
             ],
           });
           console.log(`Watching ${ranAnime}`);
-        }, 1800000); // 30 minutes
+        }, hours); // 30 minutes
       } else {
         intervalId = setInterval(async () => {
           let ranMusic = randomNoRepeats(Music)();
@@ -41,7 +44,7 @@ export function execute(client) {
             ],
           });
           console.log(`Listening to ${ranMusic}`);
-        }, 600000); // 10 minutes
+        }, minutes); // 10 minutes
       }
     });
   }, 43200000); // 12 hours

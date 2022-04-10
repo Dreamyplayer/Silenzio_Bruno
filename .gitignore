@@ -53,6 +53,6 @@ config.js
 .jsdoc.json
 
 # Developments
-Database/
-test.
+database/
+testing.js
 subs

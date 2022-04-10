@@ -1,4 +1,5 @@
 import { SlashCommandBuilder } from '@discordjs/builders';
+import { ChannelType } from 'discord-api-types/v9';
 import { Permissions } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
@@ -7,42 +8,60 @@ export const data = new SlashCommandBuilder()
   .addStringOption(option =>
     option
       .setName('commands')
-      .setDescription('Select lock/unlock to this text channel.')
+      .setDescription('Select a text channel to lock/unlock.')
       .setRequired(true)
       .addChoice('Lock', 'locked')
       .addChoice('unlock', 'unlocked'),
-  );
+  )
+  .addChannelOption(option =>
+    option
+      .setName('channel')
+      .setDescription('Select Channel to lock/unlock.')
+      .setRequired(true)
+      .addChannelType(ChannelType.GuildText),
+  )
+  .addStringOption(option => option.setName('reason').setDescription('Reason for locking/unlocking.'));
 
 export async function execute(interaction) {
   const cmds = interaction.options.getString('commands');
-  const locked = interaction.channel;
+  const locked = interaction.options.getChannel('channel');
+  const reason = interaction.options.getString('reason');
+
   if (cmds === 'locked') {
+    if (!locked.permissionsFor(interaction.guildId).has(Permissions.FLAGS.SEND_MESSAGES))
+      return await interaction.reply({ constent: 'This channel seems already locked.', ephemeral: true });
     locked.permissionOverwrites
       .set(
         [
           {
             id: interaction.guildId,
-            deny: [Permissions.FLAGS.SEND_MESSAGES, Permissions.FLAGS.ADD_REACTIONS],
+            deny: [Permissions.FLAGS.SEND_MESSAGES],
             type: 'role',
           },
         ],
-        `Locking ${locked.name} text channel`,
+        `Locking a text channel`,
       )
       .catch(console.error);
-    await interaction.reply({ content: 'Channel Locked', ephemeral: true });
+    await interaction.reply({ content: `\\🔒 Channel Locked`, ephemeral: true });
+    await locked.send(
+      `${reason ? `✚ \`[ 🔒 CHANNEL LOCKED ]\` \n↳ Reason: *${reason}*` : `✚ \`[ 🔒 CHANNEL LOCKED ]\``}`,
+    );
   } else if (cmds === 'unlocked') {
     locked.permissionOverwrites
       .set(
         [
           {
             id: interaction.guildId,
-            allow: [Permissions.FLAGS.SEND_MESSAGES, Permissions.FLAGS.ADD_REACTIONS],
+            allow: [Permissions.FLAGS.SEND_MESSAGES],
             type: 'role',
           },
         ],
-        `Unlocking ${locked.name} text channel`,
+        `Unlocking a text channel`,
       )
       .catch(console.error);
-    await interaction.reply({ content: 'Channel Locked', ephemeral: true });
+    await interaction.reply({ content: '\\🔓 Channel Unlocked', ephemeral: true });
+    await locked.send(
+      `${reason ? `✚ \`[ 🔓 CHANNEL UNLOCKED ]\` \n↳ Reason: *${reason}*` : `✚ \`[ 🔓 CHANNEL UNLOCKED ]\``}`,
+    );
   }
 }
