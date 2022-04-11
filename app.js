@@ -1,9 +1,14 @@
 import chalk from 'chalk';
 import { Client, Collection } from 'discord.js';
 import { config } from 'dotenv';
-import Keyv from 'keyv';
 import { readdirSync } from 'node:fs';
+import { performance } from 'node:perf_hooks';
+import { cwd } from 'node:process';
+import { open } from 'sqlite';
+import sqlite3 from 'sqlite3';
 config();
+
+const start = performance.now();
 
 const client = new Client({
   shards: 'auto',
@@ -16,18 +21,61 @@ const client = new Client({
   restRequestTimeout: 25000,
   restSweepInterval: 60,
   retryLimit: 1,
-  intents: ['GUILDS', 'GUILD_MEMBERS', 'GUILD_BANS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS'],
+  intents: ['GUILDS', 'GUILD_MEMBERS', 'GUILD_BANS', 'GUILD_MESSAGES'],
 });
 
 // Database Setup
-const modlogs = new Keyv('sqlite://Database/modlogs.sqlite');
-modlogs.on('error', err => console.error('CONNECTION ERROR:', chalk.green(err)));
+(async () => {
+  const [bruno, cases, history] = await Promise.all([
+    // Can't Open db files in database folder
+    open({
+      filename: `${cwd()}/database/bruno.db`,
+      driver: sqlite3.Database,
+    }),
+    open({
+      filename: `${cwd()}/database/cases.db`,
+      driver: sqlite3.Database,
+    }),
+    open({
+      filename: `${cwd()}/database/history.db`,
+      driver: sqlite3.Database,
+    }),
+  ]);
+
+  // sqlite3.verbose();
+  // bruno.on('trace', data => console.log(`${chalk.bgGreen('BRUNO:')} ${data}`));
+  // cases.on('trace', data => console.log(`${chalk.bgGreen('CASES:')} ${data}`));
+  // history.on('trace', data => console.log(`${chalk.bgGreen('HISTORY:')} ${data}`));
+
+  // Migrations
+  await bruno.exec('CREATE TABLE IF NOT EXISTS bruno (guildid VARCHAR(20), prefix VARCHAR(5))');
+  await bruno.exec(`CREATE TABLE IF NOT EXISTS channels (guildid VARCHAR(20), logchannelId VARCHAR(20),
+  modLogChannelID VARCHAR(20))`);
+  // await bruno.exec(`CREATE TABLE IF NOT EXISTS settings (guildid VARCHAR(20), yt BLOB, discord BLOB,
+  // emoji BlOB, spams BLOB)`);
+
+  await cases.exec(
+    `CREATE TABLE IF NOT EXISTS cases (caseid INTEGER, guildid VARCHAR(20), caseAction VARCHAR(10),
+    roleId VARCHAR(20), actionExpiration VARCHAR(20), reason TEXT, moderatorId VARCHAR(20),
+    targetId VARCHAR(20), deleteMessageDays INTEGER, contextMessageId VARCHAR(20), logMessageId VARCHAR(20),
+    referenceId INTEGER)`,
+  );
+
+  await history.exec(
+    `CREATE TABLE IF NOT EXISTS history (userid VARCHAR(20), bans INTEGER, mutes INTEGER, kicks INTEGER,
+    spams INTEGER, warns INTEGER) `,
+  );
+
+  // accessible for client
+  client.bruno = bruno;
+  client.cases = cases;
+  client.history = history;
+})();
 
 // Setting
 client.commands = new Collection();
 client.cooldowns = new Collection();
 client.aliases = new Map();
-client.db = modlogs;
 const unhandledRejections = new Map();
 
 // Commands Handler
@@ -73,5 +121,7 @@ process.on('uncaughtException', (err, origin) => {
   );
 });
 
+const end = performance.now() - start;
+console.log(`${chalk.bgBlueBright(end.toFixed() + ' ' + 'ms')}`);
 // Login
 client.login(process.env.TOKEN);
