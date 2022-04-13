@@ -46,6 +46,7 @@ export async function execute(interaction) {
       ephemeral: true,
     });
   }
+
   await interaction.deferReply({ ephemeral: true });
   await wait(5000);
   const logChannel = await interaction.client.bruno.get(
@@ -68,15 +69,15 @@ export async function execute(interaction) {
   const owner = interaction.guild.ownerId === interaction.user.id ? 'Owner' : 'Moderator';
   const embed = new MessageEmbed()
     .setAuthor({
-      name: `(${owner})`,
+      name: `${interaction.user.username} (${owner})`,
       iconURL: interaction.user.displayAvatarURL(),
     })
     .setColor('#ff0000')
     .setDescription(
-      `**${owner}:** \`${interaction.user.tag}\` [${interaction.user.id}]
-       **Member:** \`${member.user.tag}\` [${member.id}]
+      `**${owner}:** \` ${interaction.user.tag} \` [${interaction.user.id}]
+       **Member:** \` ${member.user.tag} \` [${member.id}]
        **Action:** Timeout
-       **Action Expiration:** ${msToTime}
+       **Action Expiration:** \` ${msToTime} \`
        ${reason ? `**Reason:** ${bigReason}` : ''}`,
     )
     .setFooter({ text: `Case ${increase}` })
@@ -104,13 +105,13 @@ export async function execute(interaction) {
   setTimeout(async () => {
     const timeoutEnd = new MessageEmbed()
       .setAuthor({
-        name: `(Bot)`,
+        name: `${interaction.client.user.username} (Bot)`,
         iconURL: interaction.client.user.displayAvatarURL(),
       })
       .setColor('#ff0000')
       .setDescription(
-        `**Bot:** \`${interaction.client.user.tag}\` [${interaction.client.user.id}]
-       **Member:** \`${member.user.tag}\` [${member.id}]
+        `**Bot:** \` ${interaction.client.user.tag} \` [${interaction.client.user.id}]
+       **Member:** \` ${member.user.tag} \` [${member.id}]
        **Action:** TimeoutEnd
        **Reason:** Timeout expired based on duration
        **Reference:** [#${increase}](https://discord.com/channels/${interaction.guildId}/${modLogs.id}/${messageid.logMessageId})`,

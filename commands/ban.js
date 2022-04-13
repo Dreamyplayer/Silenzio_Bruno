@@ -62,13 +62,13 @@ export async function execute(interaction) {
   const owner = interaction.guild.ownerId === interaction.user.id ? 'Owner' : 'Moderator';
   const embed = new MessageEmbed()
     .setAuthor({
-      name: `(${owner})`,
+      name: `${interaction.user.username} (${owner})`,
       iconURL: interaction.user.displayAvatarURL(),
     })
     .setColor('#ed174f')
     .setDescription(
-      `**${owner}:** \`${interaction.user.tag}\` [${interaction.user.id}]
-       **Member:** \`${member.user.tag}\` [${member.id}]
+      `**${owner}:** \` ${interaction.user.tag} \` [${interaction.user.id}]
+       **Member:** \` ${member.user.tag} \` [${member.id}]
        **Action:** Ban
        ${reason ? `**Reason:** ${bigReason}` : ''}
        ${days > 0 ? `**Deleted Messages:** ${days} Day(s)` : ''}`,
