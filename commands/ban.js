@@ -28,7 +28,7 @@ export async function execute(interaction) {
   const member = interaction.options.getMember('user');
   const picked = interaction.options.getString('delete_messages');
   const reason = interaction.options.getString('reason');
-  const bigReason = reason.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
+  const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
   const days = picked === 'dda' ? 0 : picked === '24h' ? 1 : 7;
 
   if (!member) {
