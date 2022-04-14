@@ -25,9 +25,12 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
-  const member = interaction.options.getMember('user');
-  const picked = interaction.options.getString('delete_messages');
-  const reason = interaction.options.getString('reason');
+  const { client, guild, user, guildId, options } = interaction;
+
+  const member = options.getMember('user');
+  const picked = options.getString('delete_messages');
+  const reason = options.getString('reason');
+
   const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
   const days = picked === 'dda' ? 0 : picked === '24h' ? 1 : 7;
 
@@ -43,31 +46,29 @@ export async function execute(interaction) {
 
   await interaction.deferReply({ ephemeral: true });
   await wait(5000);
-  const logChannel = await interaction.client.bruno.get(
-    `SELECT modLogChannelID FROM channels WHERE guildid = ${interaction.guild.id}`,
-  );
+  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM channels WHERE guildid = ${guildId}`);
 
-  let data = await interaction.client.cases.get(
-    `SELECT caseId FROM cases WHERE guildid = ${interaction.guildId} ORDER BY caseId DESC LIMIT 1;`,
+  let data = await client.cases.get(
+    `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
   );
   const increase = data?.caseid ? ++data.caseid : 1;
 
-  await interaction.client.cases.exec(`INSERT INTO cases
+  await client.cases.exec(`INSERT INTO cases
   (caseid, guildid, caseaction, reason, deletemessagedays, moderatorid, targetid)
-  VALUES (${increase}, ${interaction.guildId}, 'Ban', '${reason ?? undefined}', ${days}, ${interaction.user.id},
+  VALUES (${increase}, ${guildId}, 'Ban', '${reason ?? undefined}', ${days}, ${user.id},
   ${member.id})`);
 
-  const modLogs = interaction.guild.channels.cache.get(logChannel.modLogChannelID);
+  const modLogs = guild.channels.cache.get(modLogChannelID);
 
-  const owner = interaction.guild.ownerId === interaction.user.id ? 'Owner' : 'Moderator';
+  const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
   const embed = new MessageEmbed()
     .setAuthor({
-      name: `${interaction.user.username} (${owner})`,
-      iconURL: interaction.user.displayAvatarURL(),
+      name: `${user.username} (${owner})`,
+      iconURL: user.displayAvatarURL(),
     })
     .setColor('#ed174f')
     .setDescription(
-      `**${owner}:** \` ${interaction.user.tag} \` [${interaction.user.id}]
+      `**${owner}:** \` ${user.tag} \` [${user.id}]
        **Member:** \` ${member.user.tag} \` [${member.id}]
        **Action:** Ban
        ${reason ? `**Reason:** ${bigReason}` : ''}
@@ -77,17 +78,15 @@ export async function execute(interaction) {
     .setTimestamp();
   await modLogs
     ?.send({ embeds: [embed] })
-    .then(message =>
-      interaction.client.cases.exec(`UPDATE cases SET logMessageId = ${message.id} WHERE caseid = ${increase}`),
-    );
+    .then(message => client.cases.exec(`UPDATE cases SET logMessageId = ${message.id} WHERE caseid = ${increase}`));
 
   // Updating Bans count to this banned user
-  const bans = await interaction.client.history.get(`SELECT bans FROM history WHERE userid = '${member.id}'`);
+  const bans = await client.history.get(`SELECT bans FROM history WHERE userid = '${member.id}'`);
 
   if (bans === undefined) {
-    await interaction.client.history.exec(`INSERT INTO history (userid, bans) VALUES ('${member.id}', 1)`);
+    await client.history.exec(`INSERT INTO history (userid, bans) VALUES ('${member.id}', 1)`);
   } else {
-    await interaction.client.history.exec(`UPDATE history SET bans = bans + 1 WHERE userid = ${member.id}`);
+    await client.history.exec(`UPDATE history SET bans = bans + 1 WHERE userid = ${member.id}`);
   }
 
   await interaction.editReply({ content: `► **\`[BANNED]\`** ${member.user.tag} \`(${member.id})\`` });

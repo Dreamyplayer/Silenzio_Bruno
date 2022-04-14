@@ -29,12 +29,15 @@ export const data = new SlashCommandBuilder()
   .addStringOption(option => option.setName('reason').setDescription('The reason for timing them out, if any'));
 
 export async function execute(interaction) {
-  const member = interaction.options.getMember('user');
-  const options = interaction.options.getString('options');
-  const duration = interaction.options.getInteger('duration');
-  const reason = interaction.options.getString('reason');
+  const { client, guild, user, guildId, options } = interaction;
+
+  const member = options.getMember('user');
+  const selected = options.getString('options');
+  const duration = options.getInteger('duration');
+  const reason = options.getString('reason');
+
   const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
-  const milliseconds = ms(`${duration}${options}`);
+  const milliseconds = ms(`${duration}${selected}`);
   const msToTime = ms(milliseconds, { long: true });
 
   if (!member) {
@@ -48,33 +51,29 @@ export async function execute(interaction) {
   }
 
   await interaction.deferReply({ ephemeral: true });
-  await wait(5000);
-  const logChannel = await interaction.client.bruno.get(
-    `SELECT modLogChannelID FROM channels WHERE guildid = ${interaction.guild.id}`,
-  );
-  const modLogs = interaction.guild.channels.cache.get(logChannel.modLogChannelID);
+  await wait(4000);
+  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM channels WHERE guildid = ${guildId}`);
+  const modLogs = guild.channels.cache.get(modLogChannelID);
 
-  let data = await interaction.client.cases.get(
-    `SELECT caseId FROM cases WHERE guildid = ${interaction.guildId} ORDER BY caseId DESC LIMIT 1;`,
+  let data = await client.cases.get(
+    `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
   );
   const increase = data?.caseid ? ++data.caseid : 1;
 
-  await interaction.client.cases.exec(`INSERT INTO cases
+  await client.cases.exec(`INSERT INTO cases
   (caseid, guildid, caseaction, actionexpiration, reason, moderatorid, targetid)
-  VALUES (${increase}, ${interaction.guildId}, 'Timeout', ${milliseconds}, '${reason ?? undefined}', ${
-    interaction.user.id
-  },
+  VALUES (${increase}, ${guildId}, 'Timeout', ${milliseconds}, '${reason ?? undefined}', ${user.id},
   ${member.id})`);
 
-  const owner = interaction.guild.ownerId === interaction.user.id ? 'Owner' : 'Moderator';
+  const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
   const embed = new MessageEmbed()
     .setAuthor({
-      name: `${interaction.user.username} (${owner})`,
-      iconURL: interaction.user.displayAvatarURL(),
+      name: `${user.username} (${owner})`,
+      iconURL: user.displayAvatarURL(),
     })
     .setColor('#ff0000')
     .setDescription(
-      `**${owner}:** \` ${interaction.user.tag} \` [${interaction.user.id}]
+      `**${owner}:** \` ${user.tag} \` [${user.id}]
        **Member:** \` ${member.user.tag} \` [${member.id}]
        **Action:** Timeout
        **Action Expiration:** \` ${msToTime} \`
@@ -84,37 +83,33 @@ export async function execute(interaction) {
     .setTimestamp();
   await modLogs
     ?.send({ embeds: [embed] })
-    .then(message =>
-      interaction.client.cases.exec(`UPDATE cases SET logMessageId = ${message.id} WHERE caseid = ${increase}`),
-    );
+    .then(message => client.cases.exec(`UPDATE cases SET logMessageId = ${message.id} WHERE caseid = ${increase}`));
 
   // Timeout End
-  let outData = await interaction.client.cases.get(
-    `SELECT caseId FROM cases WHERE guildid = ${interaction.guildId} ORDER BY caseId DESC LIMIT 1;`,
+  let outData = await client.cases.get(
+    `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
   );
   const outIncrease = outData?.caseid ? ++outData.caseid : 1;
 
-  await interaction.client.cases.exec(`INSERT INTO cases
+  await client.cases.exec(`INSERT INTO cases
   (caseid, guildid, caseaction, actionexpiration, reason, moderatorid, targetid)
-  VALUES (${outIncrease}, ${interaction.guildId}, 'TimeoutEnd', ${milliseconds}, '${reason ?? undefined}', ${
-    interaction.user.id
-  },
+  VALUES (${outIncrease}, ${guildId}, 'TimeoutEnd', ${milliseconds}, '${reason ?? undefined}', ${user.id},
   ${member.id})`);
 
-  const messageid = await interaction.client.cases.get(`SELECT logMessageId FROM cases WHERE caseid = ${increase}`);
+  const messageid = await client.cases.get(`SELECT logMessageId FROM cases WHERE caseid = ${increase}`);
   setTimeout(async () => {
     const timeoutEnd = new MessageEmbed()
       .setAuthor({
-        name: `${interaction.client.user.username} (Bot)`,
-        iconURL: interaction.client.user.displayAvatarURL(),
+        name: `${client.user.username} (Bot)`,
+        iconURL: client.user.displayAvatarURL(),
       })
       .setColor('#ff0000')
       .setDescription(
-        `**Bot:** \` ${interaction.client.user.tag} \` [${interaction.client.user.id}]
+        `**Bot:** \` ${client.user.tag} \` [${client.user.id}]
        **Member:** \` ${member.user.tag} \` [${member.id}]
        **Action:** TimeoutEnd
        **Reason:** Timeout expired based on duration
-       **Reference:** [#${increase}](https://discord.com/channels/${interaction.guildId}/${modLogs.id}/${messageid.logMessageId})`,
+       **Reference:** [#${increase}](https://discord.com/channels/${guildId}/${modLogs.id}/${messageid.logMessageId})`,
       )
       .setFooter({ text: `Case ${outIncrease}` })
       .setTimestamp();
@@ -122,12 +117,12 @@ export async function execute(interaction) {
   }, milliseconds);
 
   // Updating Bans count to this banned user
-  const timeouts = await interaction.client.history.get(`SELECT timeouts FROM history WHERE userid = '${member.id}'`);
+  const timeouts = await client.history.get(`SELECT timeouts FROM history WHERE userid = '${member.id}'`);
 
   if (timeouts === undefined) {
-    await interaction.client.history.exec(`INSERT INTO history (userid, timeouts) VALUES ('${member.id}', 1)`);
+    await client.history.exec(`INSERT INTO history (userid, timeouts) VALUES ('${member.id}', 1)`);
   } else {
-    await interaction.client.history.exec(`UPDATE history SET timeouts = timeouts + 1 WHERE userid = ${member.id}`);
+    await client.history.exec(`UPDATE history SET timeouts = timeouts + 1 WHERE userid = ${member.id}`);
   }
 
   interaction.editReply({
