@@ -29,7 +29,7 @@ export async function execute(interaction) {
 
   if (cmds === 'locked') {
     if (!locked.permissionsFor(interaction.guildId).has(Permissions.FLAGS.SEND_MESSAGES))
-      return await interaction.reply({ constent: 'This channel seems already locked.', ephemeral: true });
+      return await interaction.reply({ content: `${locked} seems already locked.`, ephemeral: true });
     locked.permissionOverwrites
       .set(
         [

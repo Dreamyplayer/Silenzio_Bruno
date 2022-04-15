@@ -27,10 +27,30 @@ const rest = new REST({ version: '9' }).setToken(process.env.TOKEN);
     // and publish them to global commands when they're ready for public use.
 
     // Guild Commands
+    // const data = await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
+
     await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), { body: commands });
 
     // Global Commands publish them to global commands when they're ready for public use.
     // await rest.put(Routes.applicationGuildCommands(CLIENT_ID), { body: commands });
+
+    // await rest.put(Routes.guildApplicationCommandsPermissions(CLIENT_ID, GUILD_ID), {
+    //   body: data.map(({ id }) => ({
+    //     id: id,
+    //     permissions: [
+    //       {
+    //         id: OWNERS,
+    //         type: ApplicationCommandPermissionType.User,
+    //         permission: true,
+    //       },
+    //       {
+    //         id: '964161625772924991',
+    //         type: ApplicationCommandPermissionType.Role,
+    //         permission: true,
+    //       },
+    //     ],
+    //   })),
+    // });
 
     console.log('Successfully reloaded application (/) commands.');
   } catch (error) {

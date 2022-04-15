@@ -9,10 +9,10 @@ export async function execute(message) {
   if (message.channel.type === 'dm') return;
   const client = message.client;
 
-  const prefix = await client.db
-    .get(`BOT_${message.guild.id}`)
-    .then(data => data?.prefix ?? '|')
-    .catch(console.error);
+  const prefix =
+    (await client.bruno
+      .get(`SELECT prefix FROM bruno WHERE guildid = '${message.guild.id}'`)
+      .then(data => data.prefix)) ?? '|';
 
   // Message Handler
   const escapeRegex = str => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -23,11 +23,9 @@ export async function execute(message) {
   const [, matchedPrefix] = message.content.match(prefixRegex);
 
   if (message.content.match(new RegExp(`^<@!?${client.user.id}>$`))) {
-    await client.db.get(`BOT_${message.guild.id}`).then(data => {
-      return message.channel.send(
-        `${client.user.username} \\💪 \n**◢** __Default:__ **\`|\`** \n**◢** __Server:__ **\`${data.prefix}\`** \n**↳** __Slash Commands:__ **\`/\`** `,
-      );
-    });
+    return message.channel.send(
+      `${client.user.username} \\💪 \n**◢** __Default:__ **\`|\`** \n**◢** __Server:__ **\`${prefix}\`** \n**↳** __Slash Commands:__ **\`/\`** `,
+    );
   }
 
   const args = message.content.split(/ +/g);

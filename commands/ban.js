@@ -46,7 +46,7 @@ export async function execute(interaction) {
 
   await interaction.deferReply({ ephemeral: true });
   await wait(5000);
-  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM channels WHERE guildid = ${guildId}`);
+  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
 
   let data = await client.cases.get(
     `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
