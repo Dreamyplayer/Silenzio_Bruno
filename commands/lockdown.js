@@ -5,6 +5,7 @@ import { Permissions } from 'discord.js';
 export const data = new SlashCommandBuilder()
   .setName('lockdown')
   .setDescription('Locks / unlocks a text channel')
+  .setDefaultPermission(false)
   .addStringOption(option =>
     option
       .setName('commands')

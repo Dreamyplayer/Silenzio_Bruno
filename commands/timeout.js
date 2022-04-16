@@ -6,6 +6,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 export const data = new SlashCommandBuilder()
   .setName('timeout')
   .setDescription(`Members can't chat, reply, react, connect, or use stage channels during timeout.`)
+  .setDefaultPermission(false)
   .addUserOption(option => option.setName('user').setDescription('The member to timeout').setRequired(true))
   .addStringOption(option =>
     option

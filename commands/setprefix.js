@@ -3,6 +3,7 @@ import { SlashCommandBuilder } from '@discordjs/builders';
 export const data = new SlashCommandBuilder()
   .setName('setprefix')
   .setDescription('Sets a new prefix to this server [Customization of Prefix]')
+  .setDefaultPermission(false)
   .addStringOption(option =>
     option.setName('input').setDescription(`[Prefix Update] - must be less than 2 characters.`).setRequired(true),
   );

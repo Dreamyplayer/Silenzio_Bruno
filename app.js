@@ -44,7 +44,6 @@ const client = new Client({
 // Database Setup
 (async () => {
   const [bruno, cases, history] = await Promise.all([
-    // Can't Open db files in database folder
     open({
       filename: `${cwd()}/database/bruno.db`,
       driver: sqlite3.Database,
@@ -80,8 +79,9 @@ const client = new Client({
 
   await history.exec(
     `CREATE TABLE IF NOT EXISTS history (userid VARCHAR(20), bans INTEGER, timeouts INTEGER, kicks INTEGER,
-    spams INTEGER, warns INTEGER) `,
+    spams INTEGER, warns INTEGER, reported INTEGER)`,
   );
+  await history.exec(`CREATE TABLE IF NOT EXISTS counts (caseAction VARCHAR(10), usage INTEGER)`);
 
   // accessible for client
   client.bruno = bruno;
@@ -94,7 +94,7 @@ client.commands = new Collection();
 client.cooldowns = new Collection();
 client.aliases = new Map();
 const unhandledRejections = new Map();
-client.setMaxListeners(20); // test before commit
+client.setMaxListeners(20);
 
 // Commands Handler
 const commandFiles = readdirSync('./commands').filter(file => file.endsWith('.js'));
@@ -140,6 +140,6 @@ process.on('uncaughtException', (err, origin) => {
 });
 
 const end = performance.now() - start;
-console.log(`${chalk.bgBlueBright(end.toFixed() + ' ' + 'ms')}`);
+console.log(`${chalk.bgBlueBright(`${end.toFixed()} ms`)}`);
 // Login
 client.login(process.env.TOKEN);

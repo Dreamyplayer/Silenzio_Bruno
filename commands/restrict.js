@@ -4,6 +4,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 export const data = new SlashCommandBuilder()
   .setName('restrict')
   .setDescription('Restrict a member of this guild/server.')
+  .setDefaultPermission(false)
   .addStringOption(option =>
     option
       .setName('commands')

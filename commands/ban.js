@@ -5,6 +5,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 export const data = new SlashCommandBuilder()
   .setName('ban')
   .setDescription('Bans member')
+  .setDefaultPermission(false)
   .addUserOption(option => option.setName('user').setDescription('The member to ban').setRequired(true))
   .addStringOption(option =>
     option
