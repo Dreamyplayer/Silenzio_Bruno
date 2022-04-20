@@ -1,14 +1,13 @@
 {
   "name": "silenzio_bruno",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "app.js",
   "author": "♔ Dяεαмү アlαүεя ♔",
   "license": "Apache-2.0",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "yarn cmd && node app.js",
-    "cmd": "node deploy-commands.js",
+    "dev": "node deploy.js && node app.js",
     "lint": "eslint --fix --ignore-path .gitignore .",
     "prettier": "prettier --write . '!**/*.{js}'",
     "build": "yarn run lint && yarn run prettier && yarn run dev"
