@@ -72,8 +72,8 @@ const client = new Client({
 
   await cases.exec(
     `CREATE TABLE IF NOT EXISTS cases (caseid INTEGER, guildid VARCHAR(20), caseAction VARCHAR(10),
-    roleId VARCHAR(20), actionExpiration TEXT, reason TEXT, moderatorId VARCHAR(20),
-    targetId VARCHAR(20), deleteMessageDays INTEGER, contextMessageId VARCHAR(20), logMessageId VARCHAR(20),
+    roleId VARCHAR(20), actionExpiration TEXT, reason TEXT, moderatorId VARCHAR(20), moderatorTag TEXT,
+    targetId VARCHAR(20), targetTag TEXT, deleteMessageDays INTEGER, contextMessageId VARCHAR(20), logMessageId VARCHAR(20),
     referenceId INTEGER)`,
   );
 
