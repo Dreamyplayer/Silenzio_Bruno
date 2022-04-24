@@ -2,7 +2,6 @@ import chalk from 'chalk';
 import { ApplicationCommandPermissionType } from 'discord-api-types/v10';
 export const name = 'interactionCreate';
 export async function execute(interaction) {
-  // if (!interaction.isCommand()) return;
   if (!interaction.isCommand() && !interaction.isContextMenu()) {
     return;
   }

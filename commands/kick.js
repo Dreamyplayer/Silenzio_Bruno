@@ -3,50 +3,33 @@ import { MessageActionRow, MessageButton, MessageEmbed } from 'discord.js';
 import { setTimeout as wait } from 'node:timers/promises';
 
 export const data = new SlashCommandBuilder()
-  .setName('ban')
-  .setDescription('Bans member')
+  .setName('kick')
+  .setDescription('Kicks a Member')
   .setDefaultPermission(false)
-  .addUserOption(option => option.setName('user').setDescription('The member to ban').setRequired(true))
+  .addUserOption(option => option.setName('user').setDescription('The member to kick').setRequired(true))
   .addStringOption(option =>
-    option
-      .setName('delete_messages')
-      .setDescription('How much of their recent messages to delete')
-      .setRequired(true)
-      .addChoices(
-        [
-          [`Don't Delete Any`, 'dda'],
-          ['Previous 24 Hours', '24h'],
-          ['Previous 7 Days', '7d'],
-        ],
-        true,
-      ),
-  )
-  .addStringOption(option =>
-    option.setName('reason').setDescription('The Reason for banning, if any').setRequired(false),
+    option.setName('reason').setDescription('The Reason for Kicking, if any').setRequired(false),
   )
   .addIntegerOption(option =>
-    option.setName('reference').setDescription('The Reference for banning, if any').setRequired(false).setMinValue(1),
+    option.setName('reference').setDescription('The Reference for Kicking, if any').setRequired(false).setMinValue(1),
   );
 
 export async function execute(interaction) {
   const { client, guild, user, guildId, options } = interaction;
 
   const member = options.getMember('user');
-  const picked = options.getString('delete_messages');
   const reason = options.getString('reason');
   const reference = options.getInteger('reference');
 
+  const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
   const ref = await client.cases.get(`SELECT logMessageId FROM cases WHERE caseid = ${reference}`);
 
-  const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
-  const days = picked === 'dda' ? 0 : picked === '24h' ? 1 : 7;
-
   if (!member) {
-    return interaction.reply({ content: '\\☕ *❝ User not found ❞*', ephemeral: true });
+    return interaction.reply({ content: 'User not found', ephemeral: true });
   }
-  if (member?.bannable === false) {
+  if (member?.manageable === false) {
     return interaction.reply({
-      content: `\\☕ *❝ You don't have the appropriate permissions to ban that user ❞*`,
+      content: `You don't have the appropriate permissions to kick that user.`,
       ephemeral: true,
     });
   }
@@ -63,13 +46,13 @@ export async function execute(interaction) {
   const increase = data?.caseid ? ++data.caseid : 1;
 
   await client.cases.exec(`INSERT INTO cases
-  (caseid, guildid, caseaction, reason, deletemessagedays, moderatorid, moderatortag, targetid, targettag, referenceid)
-  VALUES (${increase}, ${guildId}, 'Ban', '${reason ?? undefined}', ${days}, ${user.id}, '${user.tag}',
+  (caseid, guildid, caseaction, reason, moderatorid, moderatortag, targetid, targettag, referenceid)
+  VALUES (${increase}, ${guildId}, 'Kick', '${reason ?? undefined}', ${user.id},'${user.tag}',
   ${member.id}, '${member.user.tag}', '${reference ?? undefined}')`);
 
   const modLogs = guild.channels.cache.get(modLogChannelID);
-  const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
 
+  const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
   const embed = new MessageEmbed()
     .setAuthor({
       name: `${user.username} (${owner})`,
@@ -79,7 +62,7 @@ export async function execute(interaction) {
     .setDescription(
       `**${owner}:** \` ${user.tag} \` [${user.id}]
        **Member:** \` ${member.user.tag} \` [${member.id}]
-       **Action:** Ban
+       **Action:** Kick
        ${reason ? `**Reason:** ${bigReason}` : ''}
        ${
          reference
@@ -94,15 +77,15 @@ export async function execute(interaction) {
     .then(message => client.cases.exec(`UPDATE cases SET logMessageId = ${message.id} WHERE caseid = ${increase}`));
 
   // Updating Bans count to this banned user
-  const history = await client.history.get(`SELECT bans, reports FROM history WHERE userid = '${member.id}'`);
+  const history = await client.history.get(`SELECT kicks, reports FROM history WHERE userid = '${member.id}'`);
 
-  if (history.bans === undefined || history.bans === null) {
-    await client.history.exec(`INSERT INTO history (userid, bans) VALUES ('${member.id}', 1)`);
+  if (history.kicks === undefined || history.kicks === null) {
+    await client.history.exec(`INSERT INTO history (userid, kicks) VALUES ('${member.id}', 1)`);
   } else {
-    await client.history.exec(`UPDATE history SET bans = bans + 1 WHERE userid = ${member.id}`);
+    await client.history.exec(`UPDATE history SET kicks = kicks + 1 WHERE userid = ${member.id}`);
   }
 
-  // await member.ban({ days: picked === 'dda' ? 0 : picked === '24h' ? 1 : 7, reason });
+  // await member.kick(reason);
 
   await interaction.deferReply({ ephemeral: true });
   await wait(4000);
@@ -126,7 +109,7 @@ export async function execute(interaction) {
   });
 
   await interaction.editReply({
-    content: `► **\`[BANNED]\`** ${member.user.tag} \`(${member.id})\``,
+    content: `► **\`[KICKED]\`** ${member.user.tag} \`(${member.id})\``,
     components: [row],
   });
 }

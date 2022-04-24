@@ -79,7 +79,7 @@ const client = new Client({
 
   await history.exec(
     `CREATE TABLE IF NOT EXISTS history (userid VARCHAR(20), bans INTEGER, timeouts INTEGER, kicks INTEGER,
-    spams INTEGER, warns INTEGER, reported INTEGER)`,
+    spams INTEGER, warns INTEGER, reports INTEGER)`,
   );
   await history.exec(`CREATE TABLE IF NOT EXISTS counts (caseAction VARCHAR(10), usage INTEGER)`);
 
