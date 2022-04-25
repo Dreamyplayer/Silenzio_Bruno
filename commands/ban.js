@@ -6,6 +6,14 @@ export const data = new SlashCommandBuilder()
   .setName('ban')
   .setDescription('Bans member')
   .setDefaultPermission(false)
+  .addStringOption(option =>
+    option
+      .setName('commands')
+      .setDescription('Select a command to execute')
+      .setRequired(true)
+      .addChoice('Ban', 'ban')
+      .addChoice('softBan', 'softban'),
+  )
   .addUserOption(option => option.setName('user').setDescription('The member to ban').setRequired(true))
   .addStringOption(option =>
     option
@@ -31,6 +39,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction) {
   const { client, guild, user, guildId, options } = interaction;
 
+  const action = options.getString('commands');
   const member = options.getMember('user');
   const picked = options.getString('delete_messages');
   const reason = options.getString('reason');
@@ -41,7 +50,7 @@ export async function execute(interaction) {
   const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
   const days = picked === 'dda' ? 0 : picked === '24h' ? 1 : 7;
 
-  if (!member) {
+  if (!member || guild.members.cache.get(member.id) === undefined) {
     return interaction.reply({ content: '\\☕ *❝ User not found ❞*', ephemeral: true });
   }
   if (member?.bannable === false) {
@@ -64,7 +73,7 @@ export async function execute(interaction) {
 
   await client.cases.exec(`INSERT INTO cases
   (caseid, guildid, caseaction, reason, deletemessagedays, moderatorid, moderatortag, targetid, targettag, referenceid)
-  VALUES (${increase}, ${guildId}, 'Ban', '${reason ?? undefined}', ${days}, ${user.id}, '${user.tag}',
+  VALUES (${increase}, ${guildId}, '${action}', '${reason ?? undefined}', ${days}, ${user.id}, '${user.tag}',
   ${member.id}, '${member.user.tag}', '${reference ?? undefined}')`);
 
   const modLogs = guild.channels.cache.get(modLogChannelID);
@@ -79,7 +88,7 @@ export async function execute(interaction) {
     .setDescription(
       `**${owner}:** \` ${user.tag} \` [${user.id}]
        **Member:** \` ${member.user.tag} \` [${member.id}]
-       **Action:** Ban
+       **Action:** ${action}
        ${reason ? `**Reason:** ${bigReason}` : ''}
        ${
          reference
@@ -96,16 +105,11 @@ export async function execute(interaction) {
   // Updating Bans count to this banned user
   const history = await client.history.get(`SELECT bans, reports FROM history WHERE userid = '${member.id}'`);
 
-  if (history.bans === undefined || history.bans === null) {
+  if (history?.bans === undefined || history?.bans === null) {
     await client.history.exec(`INSERT INTO history (userid, bans) VALUES ('${member.id}', 1)`);
   } else {
     await client.history.exec(`UPDATE history SET bans = bans + 1 WHERE userid = ${member.id}`);
   }
-
-  // await member.ban({ days: picked === 'dda' ? 0 : picked === '24h' ? 1 : 7, reason });
-
-  await interaction.deferReply({ ephemeral: true });
-  await wait(4000);
 
   // Button for Reporting a user
   const row = new MessageActionRow().addComponents(
@@ -115,7 +119,7 @@ export async function execute(interaction) {
   const collector = interaction.channel.createMessageComponentCollector({ filter, time: 30000 });
   collector.on('collect', async i => {
     if (i.customId === 'report') {
-      if (history.reports === undefined || history.reports === null) {
+      if (history?.reports === undefined || history?.reports === null) {
         await client.history.exec(`INSERT INTO history (userid, reports) VALUES ('${member.id}', 1)`);
       } else {
         await client.history.exec(`UPDATE history SET reports = reports + 1 WHERE userid = ${member.id}`);
@@ -125,8 +129,22 @@ export async function execute(interaction) {
     }
   });
 
+  await interaction.deferReply({ ephemeral: true });
+  await wait(4000);
   await interaction.editReply({
-    content: `► **\`[BANNED]\`** ${member.user.tag} \`(${member.id})\``,
+    content: `► **\`[${action === 'ban' ? 'BANNED' : 'SOFTBAN'}]\`** ${member.user.tag} \`(${member.id})\``,
     components: [row],
   });
+
+  if (action === 'ban') {
+    console.log(`${user.tag} (${user.id}) has been banned from ${guild.name} (${guild.id})`);
+    // await member.ban({ days: days, reason: reason ?? 'No reason provided' }).catch(console.error);
+  } else if (action === 'softban') {
+    console.log('Softbanning');
+    // await guild.bans.create(member, {
+    //   days: days,
+    //   reason: reason ?? 'No reason provided',
+    // }).catch(console.error);
+    // await guild.bans.remove(member, reason ?? 'No reason provided').catch(console.error);
+  }
 }
