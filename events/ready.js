@@ -4,20 +4,20 @@ import { Anime, Music } from '../utils/collection.js';
 import { randomNoRepeats } from '../utils/functions.js';
 
 export function execute(client) {
-  const minutes = randomNoRepeats([720000, 360000, 960000, 480000])(); // 12, 6, 16, 8 - minutes
-  const hours = randomNoRepeats([1800000, 2700000, 3600000])(); // 30, 45, 60 - minutes
+  const minutes = randomNoRepeats([720000, 360000, 960000, 480000]); // 12, 6, 16, 8 - minutes
+  const hours = randomNoRepeats([1800000, 2700000, 3600000]); // 30, 45, 60 - minutes
 
   let intervalId;
   setInterval(() => {
     const type = ['WATCHING', 'LISTENING'];
-    let ranType = randomNoRepeats(type)();
+    let ranType = randomNoRepeats(type);
 
     clearInterval(intervalId);
 
     setTimeout(() => {
       if (ranType === 'WATCHING') {
         intervalId = setInterval(async () => {
-          let ranAnime = randomNoRepeats(Anime)();
+          let ranAnime = randomNoRepeats(Anime);
           await client.user.setPresence({
             status: 'dnd',
             activities: [
@@ -32,7 +32,7 @@ export function execute(client) {
         }, hours); // 30 minutes
       } else {
         intervalId = setInterval(async () => {
-          let ranMusic = randomNoRepeats(Music)();
+          let ranMusic = randomNoRepeats(Music);
           await client.user.setPresence({
             status: 'dnd',
             activities: [

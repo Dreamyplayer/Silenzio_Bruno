@@ -1,14 +1,14 @@
-export const randomNoRepeats = array => {
-  let copy = array.slice(0);
-  return function () {
+export const randomNoRepeats = arr => {
+  let copy = arr.slice(0);
+  return (() => {
     if (copy.length < 1) {
-      copy = array.slice(0);
+      copy = arr.slice(0);
     }
     let index = Math.floor(Math.random() * copy.length);
     let item = copy[index];
     copy.splice(index, 1);
     return item;
-  };
+  })();
 };
 
 export const numberFormatter = (num, digits) => {
@@ -30,3 +30,10 @@ export const numberFormatter = (num, digits) => {
     });
   return item ? (num / item.value).toFixed(digits).replace(rx, '$1') + item.symbol : '0';
 };
+
+// import translator from '@vitalets/google-translate-api';
+
+// export const translate = async (str, lang) => {
+//   const res = await translator(str, { to: lang });
+//   return res;
+// };
