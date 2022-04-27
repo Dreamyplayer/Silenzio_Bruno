@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { Client, Collection, Options, Util } from 'discord.js';
+import { Client, Collection, Options } from 'discord.js';
 import { config } from 'dotenv';
 import { readdirSync } from 'node:fs';
 import { performance } from 'node:perf_hooks';
@@ -25,17 +25,17 @@ const client = new Client({
   makeCache: Options.cacheWithLimits({
     ChannelManager: {
       sweepInterval: 3600,
-      sweepFilter: Util.archivedThreadSweepFilter(),
+      // sweepFilter: Util.archivedThreadSweepFilter(),
     },
     GuildChannelManager: {
       sweepInterval: 3600,
-      sweepFilter: Util.archivedThreadSweepFilter(),
+      // sweepFilter: Util.archivedThreadSweepFilter(),
     },
     MessageManager: 100,
     StageInstanceManager: 10,
     ThreadManager: {
       sweepInterval: 3600,
-      sweepFilter: Util.archivedThreadSweepFilter(),
+      // sweepFilter: Util.archivedThreadSweepFilter(),
     },
     VoiceStateManager: 10,
   }),

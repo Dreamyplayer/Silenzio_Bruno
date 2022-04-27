@@ -4,7 +4,7 @@ import { setTimeout as wait } from 'node:timers/promises';
 
 export const data = new SlashCommandBuilder()
   .setName('setup')
-  .setDescription('Setup the Roles, channels before begin')
+  .setDescription('Setup the Roles, channels, Prefix before you begin')
   .setDefaultPermission(false)
   .addChannelOption(option =>
     option
@@ -35,24 +35,26 @@ export async function execute(interaction) {
     return interaction.reply({ content: 'Moderator role not found', ephemeral: true });
   }
 
-  await interaction.deferReply({ ephemeral: true });
-  await wait(3000);
+  const brunoGuild = await client.bruno.get(`SELECT * FROM guild WHERE guildid = '${guildId}'`);
 
-  try {
-    client.bruno.exec(
-      `UPDATE guild SET modlogchannelid = ${modLogChannel.id}, logchannelid = ${logsChannel.id}, modroleid = ${moderatorRole.id}
-      WHERE guildid = ${guildId}`,
-    );
-  } catch (error) {
+  if (brunoGuild === undefined) {
     client.bruno.exec(
       `INSERT INTO guild (guildid, modlogchannelid, logchannelid, modroleid)
       VALUES (${guildId}, ${modLogChannel.id}, ${logsChannel.id}, ${moderatorRole.id})`,
     );
+  } else {
+    client.bruno.exec(
+      `UPDATE guild SET modlogchannelid = ${modLogChannel.id}, logchannelid = ${logsChannel.id}, modroleid = ${moderatorRole.id}
+      WHERE guildid = ${guildId}`,
+    );
   }
 
+  await interaction.deferReply({ ephemeral: true });
+  await wait(3000);
   interaction.editReply({
-    content: `**✿ \` [UPDATED] \`** \n\n**↳** \` [${modLogChannel.name}] \` channel set for Mod actions.
-**↳** \` [${logsChannel.name}] \` channel set for logs. \n**↳** \` [${moderatorRole.name}] \` set for moderator Role.`,
-    ephemeral: true,
+    content: `**✿ \` [UPDATED] \`**
+    **↳** \` [${modLogChannel.name}] \` channel set for Mod actions.
+    **↳** \` [${logsChannel.name}] \` channel set for logs.
+    **↳** \` [${moderatorRole.name}] \` set for moderator Role.`,
   });
 }

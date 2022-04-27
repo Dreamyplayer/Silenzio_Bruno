@@ -27,7 +27,7 @@ export async function execute(interaction) {
   if (!member) {
     return interaction.reply({ content: 'User not found', ephemeral: true });
   }
-  if (member?.manageable === false) {
+  if (member?.manageable === false || member?.kickable === false) {
     return interaction.reply({
       content: `You don't have the appropriate permissions to kick that user.`,
       ephemeral: true,
