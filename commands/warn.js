@@ -70,8 +70,10 @@ export async function execute(interaction) {
     const history = await client.history.get(`SELECT warns FROM history WHERE userid = '${member.id}'`);
 
     console.log(history);
-    if (history?.bans === undefined || history?.bans === null) {
+    if (history?.warns === undefined) {
       await client.history.exec(`INSERT INTO history (userid, warns) VALUES ('${member.id}', 1)`);
+    } else if (history?.warns === null) {
+      await client.history.exec(`UPDATE history SET warns = 1 WHERE userid = ${member.id}`);
     } else {
       await client.history.exec(`UPDATE history SET warns = warns + 1 WHERE userid = ${member.id}`);
     }
@@ -83,31 +85,33 @@ export async function execute(interaction) {
       updatedHistory?.warns === 2
         ? 'Timeout'
         : updatedHistory?.warns === 4
-        ? 'Kick'
+        ? 'kick'
         : updatedHistory?.warns >= 6
-        ? 'Ban'
+        ? 'ban'
         : `${updatedHistory?.warns}/3`;
 
     console.log(totalWarns);
     switch (totalWarns) {
       case 'Timeout':
-        member.timeout(ms('3d'), `Warns limit reached: Added Timeout by ${client.user.username}`).catch(console.error);
+        await member
+          .timeout(ms('1d'), `Warns limit reached: Added Timeout by ${client.user.username}`)
+          .catch(console.error);
         break;
-      case 'Kick':
+      case 'kick':
         await member.kick(`Warns limit reached: Proceed Kick by ${client.user.username}`).catch(console.error);
         break;
-      case 'Ban':
+      case 'ban':
         await member
           .ban({ days: 7, reason: `Warns limit reached: Proceed Ban by ${client.user.username}` })
           .catch(console.error);
-        await client.history.exec(`UPDATE history SET warns = NULL WHERE userid = '${member.id}'`);
+        await client.history.exec(`UPDATE history SET warns = null WHERE userid = '${member.id}'`);
         break;
     }
 
     switch (totalWarns) {
       case 'Timeout':
-      case 'Kick':
-      case 'Ban':
+      case 'kick':
+      case 'ban':
         let actionData = await client.cases.get(
           `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
         );
@@ -140,12 +144,29 @@ export async function execute(interaction) {
         break;
     }
 
+    const nextWarns =
+      updatedHistory?.warns === 1
+        ? 'Timeout'
+        : updatedHistory?.warns === 3
+        ? 'Kick'
+        : updatedHistory?.warns === 5
+        ? 'Ban'
+        : updatedHistory?.warns === 2
+        ? 'TIMED OUT'
+        : updatedHistory?.warns === 4
+        ? 'KICKED'
+        : updatedHistory?.warns >= 6
+        ? 'BANNED'
+        : totalWarns;
+
     const dmEmbed = new MessageEmbed().setDescription(`\n\\☕ You have been warned ${Formatters.hyperlink(
       'show',
       `https://discord.com/channels/${guildId}/${modLogs?.id}/${message?.id}`,
       ['Click to view case details'],
     )}
-    \n${precise} **Next Process:** \`Timeout\``);
+    \n${precise} **${nextWarns === nextWarns.toUpperCase() ? 'Current' : 'Next'} Process:** \`${
+      nextWarns === 'BANNED' ? 'BANNED & RESET' : nextWarns
+    }\``);
 
     try {
       await member?.send({
@@ -158,6 +179,44 @@ export async function execute(interaction) {
           embeds: [dmEmbed],
         });
       }
+    }
+
+    switch (totalWarns) {
+      case 'Timeout':
+      case 'kick':
+      case 'ban':
+        console.log(totalWarns, 'Warns limit reached');
+        // Usage + points
+        const usage = await client.history.get(
+          `SELECT caseAction, total FROM usage WHERE caseAction = '${totalWarns}'`,
+        );
+        if (usage?.caseAction === undefined) {
+          await client.history.exec(`INSERT INTO usage (caseAction, total) VALUES ('${totalWarns}', 1)`);
+        } else {
+          await client.history.exec(`UPDATE usage SET total = total + 1 WHERE caseAction = '${totalWarns}'`);
+        }
+        // Points
+        const points = await client.history.get(
+          `SELECT ${totalWarns} FROM counts WHERE guildid = '${guildId}' AND userid = '${user.id}'`,
+        );
+
+        if (points?.[`${totalWarns}`] === undefined) {
+          await client.history.exec(
+            `INSERT INTO counts (guildid, userid, ${totalWarns}) VALUES (${guildId}, '${user.id}', 1)`,
+          );
+        } else if (points?.[`${totalWarns}`] === null) {
+          await client.history.exec(
+            `UPDATE counts SET ${totalWarns} = 1 WHERE userid = '${user.id}' AND guildid = ${guildId}`,
+          );
+        } else {
+          await client.history.exec(
+            `UPDATE counts SET ${totalWarns} = ${totalWarns} + 1 WHERE userid = '${user.id}' AND guildid = ${guildId}`,
+          );
+        }
+        break;
+
+      default:
+        break;
     }
 
     await interaction.deferReply({ ephemeral: true });
