@@ -1,40 +1,8 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
 import { MessageActionRow, MessageButton, MessageEmbed } from 'discord.js';
 import { setTimeout as wait } from 'node:timers/promises';
+import { BanCommand } from './interactions/commands.js';
 
-export const data = new SlashCommandBuilder()
-  .setName('ban')
-  .setDescription('Bans member')
-  .setDefaultPermission(false)
-  .addStringOption(option =>
-    option
-      .setName('commands')
-      .setDescription('Select a command to execute')
-      .setRequired(true)
-      .addChoice('Ban', 'ban')
-      .addChoice('softBan', 'softban'),
-  )
-  .addUserOption(option => option.setName('user').setDescription('The member to ban').setRequired(true))
-  .addStringOption(option =>
-    option
-      .setName('delete_messages')
-      .setDescription('How much of their recent messages to delete')
-      .setRequired(true)
-      .addChoices(
-        [
-          [`Don't Delete Any`, 'dda'],
-          ['Previous 24 Hours', '24h'],
-          ['Previous 7 Days', '7d'],
-        ],
-        true,
-      ),
-  )
-  .addStringOption(option =>
-    option.setName('reason').setDescription('The Reason for banning, if any').setRequired(false),
-  )
-  .addIntegerOption(option =>
-    option.setName('reference').setDescription('The Reference for banning, if any').setRequired(false).setMinValue(1),
-  );
+export const data = BanCommand;
 
 export async function execute(interaction) {
   const { client, guild, user, guildId, options } = interaction;
@@ -47,10 +15,10 @@ export async function execute(interaction) {
 
   const ref = await client.cases.get(`SELECT logMessageId FROM cases WHERE caseid = ${reference}`);
 
-  const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
+  const bigReason = reason?.length > 1000 ? reason.substring(0, 1000) + '...' : reason;
   const days = picked === 'dda' ? 0 : picked === '24h' ? 1 : 7;
 
-  if (!member || guild.members.cache.get(member.id) === undefined) {
+  if (!member || guild.members.cache.get(member?.id) === undefined) {
     return interaction.reply({ content: '\\☕ *❝ User not found ❞*', ephemeral: true });
   }
   if (member?.bannable === false) {
@@ -77,30 +45,6 @@ export async function execute(interaction) {
   ${member.id}, '${member.user.tag}', '${reference ?? undefined}')`);
 
   const modLogs = guild.channels.cache.get(modLogChannelID);
-  const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
-
-  const embed = new MessageEmbed()
-    .setAuthor({
-      name: `${user.username} (${owner})`,
-      iconURL: user.displayAvatarURL(),
-    })
-    .setColor('#ed174f')
-    .setDescription(
-      `**${owner}:** \` ${user.tag} \` [${user.id}]
-       **Member:** \` ${member.user.tag} \` [${member.id}]
-       **Action:** ${action}
-       ${reason ? `**Reason:** ${bigReason}` : ''}
-       ${
-         reference
-           ? `**Reference:** [#${reference}](https://discord.com/channels/${guildId}/${modLogs.id}/${ref?.logMessageId})`
-           : ''
-       }`,
-    )
-    .setFooter({ text: `Case ${increase}` })
-    .setTimestamp();
-  await modLogs
-    ?.send({ embeds: [embed] })
-    .then(message => client.cases.exec(`UPDATE cases SET logMessageId = ${message.id} WHERE caseid = ${increase}`));
 
   // Updating Bans count to this banned user
   const history = await client.history.get(`SELECT bans, reports FROM history WHERE userid = '${member.id}'`);
@@ -129,15 +73,65 @@ export async function execute(interaction) {
     }
   });
 
+  const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
+
   await interaction.deferReply({ ephemeral: true });
   await wait(4000);
+
+  const embed = new MessageEmbed()
+    .setAuthor({
+      name: `${user.username} (${owner})`,
+      iconURL: user.displayAvatarURL(),
+    })
+    .setColor('#ed174f')
+    .setDescription(
+      `**${owner}:** \` ${user.tag} \` [${user.id}]
+       **Member:** \` ${member.user.tag} \` [${member.id}]
+       **Action:** ${action}
+       ${reason ? `**Reason:** ${bigReason}` : ''}
+       ${
+         reference
+           ? `**Reference:** [#${reference}](https://discord.com/channels/${guildId}/${modLogs.id}/${ref?.logMessageId})`
+           : ''
+       }`,
+    )
+    .setFooter({ text: `Case ${increase}` })
+    .setTimestamp();
+  await modLogs
+    ?.send({ embeds: [embed] })
+    .then(message => client.cases.exec(`UPDATE cases SET logMessageId = ${message.id} WHERE caseid = ${increase}`));
+
   await interaction.editReply({
     content: `► **\`[${action === 'ban' ? 'BANNED' : 'SOFTBAN'}]\`** ${member.user.tag} \`(${member.id})\``,
     components: [row],
   });
 
+  // Usage + points
+  const usage = await client.history.get(`SELECT caseAction, total FROM usage WHERE caseAction = '${action}'`);
+  if (usage?.caseAction === undefined) {
+    await client.history.exec(`INSERT INTO usage (caseAction, total) VALUES ('${action}', 1)`);
+  } else {
+    await client.history.exec(`UPDATE usage SET total = total + 1 WHERE caseAction = '${action}'`);
+  }
+  // Points
+  const points = await client.history.get(
+    `SELECT ${action} FROM counts WHERE guildid = '${guildId}' AND userid = '${user.id}'`,
+  );
+
+  if (points?.[`${action}`] === undefined) {
+    await client.history.exec(
+      `INSERT INTO counts (guildid, userid, userTag, ${action}) VALUES (${guildId}, '${user.id}', '${user.tag}', 1)`,
+    );
+  } else if (points?.[`${action}`] === null) {
+    await client.history.exec(`UPDATE counts SET ${action} = 1 WHERE userid = '${user.id}' AND guildid = ${guildId}`);
+  } else {
+    await client.history.exec(
+      `UPDATE counts SET ${action} = ${action} + 1 WHERE userid = '${user.id}' AND guildid = ${guildId}`,
+    );
+  }
+
   if (action === 'ban') {
-    console.log(`${user.tag} (${user.id}) has been banned from ${guild.name} (${guild.id})`);
+    console.log(`banning`);
     // await member.ban({ days: days, reason: reason ?? 'No reason provided' }).catch(console.error);
   } else if (action === 'softban') {
     console.log('Softbanning');

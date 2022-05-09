@@ -202,7 +202,7 @@ export async function execute(interaction) {
 
         if (points?.[`${totalWarns}`] === undefined) {
           await client.history.exec(
-            `INSERT INTO counts (guildid, userid, ${totalWarns}) VALUES (${guildId}, '${user.id}', 1)`,
+            `INSERT INTO counts (guildid, userid, userTag, ${totalWarns}) VALUES (${guildId}, '${user.id}', '${user.tag}', 1)`,
           );
         } else if (points?.[`${totalWarns}`] === null) {
           await client.history.exec(
