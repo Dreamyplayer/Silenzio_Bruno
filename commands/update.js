@@ -1,17 +1,8 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
 import { MessageEmbed } from 'discord.js';
 import { setTimeout as wait } from 'node:timers/promises';
+import { updateCommand } from './interactions/commands.js';
 
-export const data = new SlashCommandBuilder()
-  .setName('update')
-  .setDescription('Updates Case Reason/Reference.')
-  .addIntegerOption(option => option.setName('caseid').setDescription('The Case ID').setRequired(true).setMinValue(1))
-  .addStringOption(option =>
-    option.setName('reason').setDescription('The Reason for the Case, If any').setRequired(false),
-  )
-  .addIntegerOption(option =>
-    option.setName('reference').setDescription('The Reference for the Case, If any').setRequired(false).setMinValue(1),
-  );
+export const data = updateCommand;
 
 export async function execute(interaction) {
   const { client, guild, guildId, options } = interaction;
@@ -29,10 +20,11 @@ export async function execute(interaction) {
   const ref = await client.cases.get(`SELECT logMessageId FROM cases WHERE caseid = ${reference}`);
 
   const { caseid, caseAction, moderatorId, moderatorTag, targetId, targetTag, logMessageId } = await client.cases.get(
-    `SELECT * FROM cases WHERE guildid = ${guildId} AND caseid = ${Case}`,
+    `SELECT caseid, caseAction, moderatorId, moderatorTag, targetId, targetTag, logMessageId FROM cases
+    WHERE guildid = ${guildId} AND caseid = ${Case}`,
   );
 
-  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
+  const logs = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
 
   if (caseid === undefined) {
     return interaction.reply({ content: '* Invalid Case ID *', ephemeral: true });
@@ -43,7 +35,7 @@ export async function execute(interaction) {
   }
 
   await guild.channels.cache
-    .get(modLogChannelID)
+    .get(logs?.modLogChannelID)
     .messages.fetch(logMessageId)
     .then(message => {
       const embed = message.embeds[0];
@@ -57,7 +49,7 @@ export async function execute(interaction) {
          ${reason ? `**Reason:** ${reason}` : ''}
          ${
            ref
-             ? `**Reference:** [#${reference}](https://discord.com/channels/${guildId}/${modLogChannelID}/${ref?.logMessageId})`
+             ? `**Reference:** [#${reference}](https://discord.com/channels/${guildId}/${logs?.modLogChannelID}/${ref?.logMessageId})`
              : ''
          }`,
       );

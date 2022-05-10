@@ -1,22 +1,8 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
 import { MessageEmbed } from 'discord.js';
 import { setTimeout as wait } from 'node:timers/promises';
+import { unbanCommand } from './interactions/commands.js';
 
-export const data = new SlashCommandBuilder()
-  .setName('unban')
-  .setDescription('Unbans member')
-  .addUserOption(option =>
-    option
-      .setName('user')
-      .setDescription(`The member to unban, insert ID if user doesn't show in list`)
-      .setRequired(true),
-  )
-  .addStringOption(option =>
-    option.setName('reason').setDescription('The reason for unbanning the member').setRequired(false),
-  )
-  .addStringOption(option =>
-    option.setName('reference').setDescription('The reference for the unban').setRequired(false),
-  );
+export const data = unbanCommand;
 
 export async function execute(interaction) {
   const { client, guild, user, guildId, options } = interaction;
@@ -24,7 +10,7 @@ export async function execute(interaction) {
   const reason = options.getString('reason');
   const reference = options.getString('reference');
 
-  const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
+  const bigReason = reason?.length > 1000 ? reason.substring(0, 1000) + '...' : reason;
   const ref = await client.cases.get(`SELECT logMessageId FROM cases WHERE caseid = ${reference}`);
 
   if (ref === undefined && reference !== null) {
@@ -36,7 +22,7 @@ export async function execute(interaction) {
     return interaction.reply({ content: 'Could not find member in Guild bans list', ephemeral: true });
   }
 
-  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
+  const logs = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
 
   let data = await client.cases.get(
     `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
@@ -48,7 +34,7 @@ export async function execute(interaction) {
   VALUES (${increase}, ${guildId}, 'Unban', '${reason ?? undefined}', ${user.id}, '${user.tag}',
   ${member.id}, '${member.user.tag}', '${reference ?? undefined}')`);
 
-  const modLogs = guild.channels.cache.get(modLogChannelID);
+  const modLogs = guild.channels.cache.get(logs?.modLogChannelID);
   const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
 
   await interaction.deferReply({ ephemeral: true });

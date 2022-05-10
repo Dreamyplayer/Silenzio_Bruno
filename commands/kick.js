@@ -1,18 +1,8 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
 import { MessageActionRow, MessageButton, MessageEmbed } from 'discord.js';
 import { setTimeout as wait } from 'node:timers/promises';
+import { kickCommand } from './interactions/commands.js';
 
-export const data = new SlashCommandBuilder()
-  .setName('kick')
-  .setDescription('Kicks a Member')
-  .setDefaultPermission(false)
-  .addUserOption(option => option.setName('user').setDescription('The member to kick').setRequired(true))
-  .addStringOption(option =>
-    option.setName('reason').setDescription('The Reason for Kicking, if any').setRequired(false),
-  )
-  .addIntegerOption(option =>
-    option.setName('reference').setDescription('The Reference for Kicking, if any').setRequired(false).setMinValue(1),
-  );
+export const data = kickCommand;
 
 export async function execute(interaction) {
   const { client, guild, user, guildId, options } = interaction;
@@ -21,7 +11,7 @@ export async function execute(interaction) {
   const reason = options.getString('reason');
   const reference = options.getInteger('reference');
 
-  const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
+  const bigReason = reason?.length > 1000 ? reason.substring(0, 1000) + '...' : reason;
   const ref = await client.cases.get(`SELECT logMessageId FROM cases WHERE caseid = ${reference}`);
 
   if (!member) {
@@ -38,7 +28,7 @@ export async function execute(interaction) {
     return interaction.reply({ content: '*Invalid Reference ID*', ephemeral: true });
   }
 
-  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
+  const logs = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
 
   let data = await client.cases.get(
     `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
@@ -50,7 +40,7 @@ export async function execute(interaction) {
   VALUES (${increase}, ${guildId}, 'Kick', '${reason ?? undefined}', ${user.id},'${user.tag}',
   ${member.id}, '${member.user.tag}', '${reference ?? undefined}')`);
 
-  const modLogs = guild.channels.cache.get(modLogChannelID);
+  const modLogs = guild.channels.cache.get(logs?.modLogChannelID);
 
   const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
   const embed = new MessageEmbed()
@@ -112,4 +102,26 @@ export async function execute(interaction) {
     content: `► **\`[KICKED]\`** ${member.user.tag} \`(${member.id})\``,
     components: [row],
   });
+
+  // Usage + points
+  const usage = await client.history.get(`SELECT caseAction, total FROM usage WHERE caseAction = 'kick'`);
+  if (usage?.caseAction === undefined) {
+    await client.history.exec(`INSERT INTO usage (caseAction, total) VALUES ('kick', 1)`);
+  } else {
+    await client.history.exec(`UPDATE usage SET total = total + 1 WHERE caseAction = 'kick'`);
+  }
+  // Points
+  const points = await client.history.get(
+    `SELECT kick FROM counts WHERE guildid = '${guildId}' AND userid = '${user.id}'`,
+  );
+
+  if (points?.[`kick`] === undefined) {
+    await client.history.exec(
+      `INSERT INTO counts (guildid, userid, userTag, kick) VALUES (${guildId}, '${user.id}', '${user.tag}', 1)`,
+    );
+  } else if (points?.[`kick`] === null) {
+    await client.history.exec(`UPDATE counts SET kick = 1 WHERE userid = '${user.id}' AND guildid = ${guildId}`);
+  } else {
+    await client.history.exec(`UPDATE counts SET kick = kick + 1 WHERE userid = '${user.id}' AND guildid = ${guildId}`);
+  }
 }

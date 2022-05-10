@@ -1,48 +1,10 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
 import { MessageEmbed } from 'discord.js';
 import ms from 'ms';
 import { setTimeout as wait } from 'node:timers/promises';
 import { capitalize } from '../utils/functions.js';
+import { restrictCommand } from './interactions/commands.js';
 
-export const data = new SlashCommandBuilder()
-  .setName('restrict')
-  .setDescription('Restrict a member of this guild/server.')
-  .setDefaultPermission(false)
-  .addUserOption(option => option.setName('user').setDescription('The member to restrict').setRequired(true))
-  .addStringOption(option =>
-    option
-      .setName('commands')
-      .setDescription('Select a action to restrict.')
-      .setRequired(true)
-      .addChoice('Embed', 'embed')
-      .addChoice('Emoji', 'emoji')
-      .addChoice('React', 'react'),
-  )
-  .addStringOption(option =>
-    option
-      .setName('options')
-      .setDescription('How long to timeout the member for')
-      .setRequired(true)
-      .addChoices(
-        [
-          ['seconds', 's'],
-          ['minutes', 'm'],
-          ['hours', 'h'],
-          ['days', 'd'],
-          ['weeks', 'w'],
-        ],
-        true,
-      ),
-  )
-  .addIntegerOption(option =>
-    option.setName('duration').setDescription('How long to timeout the member for').setRequired(true),
-  )
-  .addStringOption(option =>
-    option.setName('reason').setDescription('The reason for the restriction, If any').setRequired(false),
-  )
-  .addStringOption(option =>
-    option.setName('reference').setDescription('The reference for the restriction, If any').setRequired(false),
-  );
+export const data = restrictCommand;
 
 export async function execute(interaction) {
   const { client, guild, user, guildId, options } = interaction;
@@ -60,7 +22,7 @@ export async function execute(interaction) {
   const milliseconds = ms(`${duration}${picked}`);
   const msToTime = ms(milliseconds, { long: true });
 
-  const bigReason = reason?.length > 3000 ? reason.substring(0, 3000) + '...' : reason;
+  const bigReason = reason?.length > 1000 ? reason.substring(0, 1000) + '...' : reason;
 
   switch (action) {
     case 'embed':
@@ -151,8 +113,8 @@ export async function execute(interaction) {
   }
 
   // Sending Embeds
-  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
-  const modLogs = guild.channels.cache.get(modLogChannelID);
+  const logs = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
+  const modLogs = guild.channels.cache.get(logs?.modLogChannelID);
   const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
 
   let data = await client.cases.get(
@@ -174,7 +136,9 @@ export async function execute(interaction) {
       await interaction.deferReply({ ephemeral: true });
       await wait(3000);
       await interaction.editReply({
-        content: `► \`[${capitalize(action)} Restricted]\`: ${member.user.tag} \`[${member.id}]\``,
+        content: `► **\`[${capitalize(action)} Restricted]\`**: \`${member.user.tag}\` [${
+          member.id
+        }] \n↳ **\`(${msToTime})\`**`,
       });
 
       const embed = new MessageEmbed()

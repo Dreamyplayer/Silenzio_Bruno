@@ -1,27 +1,7 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { ChannelType } from 'discord-api-types/v9';
 import { Permissions } from 'discord.js';
+import { lockdownCommand } from './interactions/commands.js';
 
-export const data = new SlashCommandBuilder()
-  .setName('lockdown')
-  .setDescription('Locks / unlocks a text channel')
-  .setDefaultPermission(false)
-  .addStringOption(option =>
-    option
-      .setName('commands')
-      .setDescription('Select a text channel to lock/unlock.')
-      .setRequired(true)
-      .addChoice('Lock', 'locked')
-      .addChoice('unlock', 'unlocked'),
-  )
-  .addChannelOption(option =>
-    option
-      .setName('channel')
-      .setDescription('Select Channel to lock/unlock.')
-      .setRequired(true)
-      .addChannelType(ChannelType.GuildText),
-  )
-  .addStringOption(option => option.setName('reason').setDescription('Reason for locking/unlocking.'));
+export const data = lockdownCommand;
 
 export async function execute(interaction) {
   const cmds = interaction.options.getString('commands');

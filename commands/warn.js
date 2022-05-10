@@ -32,8 +32,8 @@ export async function execute(interaction) {
     return interaction.reply({ content: '*Invalid Reference ID*', ephemeral: true });
   }
 
-  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
-  const modLogs = guild.channels.cache.get(modLogChannelID);
+  const logs = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
+  const modLogs = guild.channels.cache.get(logs?.modLogChannelID);
 
   let data = await client.cases.get(
     `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,

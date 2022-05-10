@@ -32,7 +32,7 @@ export async function execute(interaction) {
     return interaction.reply({ content: '*Invalid Reference ID*', ephemeral: true });
   }
 
-  const { modLogChannelID } = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
+  const logs = await client.bruno.get(`SELECT modLogChannelID FROM guild WHERE guildid = ${guildId}`);
 
   let data = await client.cases.get(
     `SELECT caseId FROM cases WHERE guildid = ${guildId} ORDER BY caseId DESC LIMIT 1;`,
@@ -44,7 +44,7 @@ export async function execute(interaction) {
   VALUES (${increase}, ${guildId}, '${action}', '${reason ?? undefined}', ${days}, ${user.id}, '${user.tag}',
   ${member.id}, '${member.user.tag}', '${reference ?? undefined}')`);
 
-  const modLogs = guild.channels.cache.get(modLogChannelID);
+  const modLogs = guild.channels.cache.get(logs?.modLogChannelID);
 
   // Updating Bans count to this banned user
   const history = await client.history.get(`SELECT bans, reports FROM history WHERE userid = '${member.id}'`);

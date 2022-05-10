@@ -1,3 +1,12 @@
+import fetch from 'cross-fetch';
+import { createHash } from 'crypto';
+import { config } from 'dotenv';
+config();
+
+export const createContentHash = content => {
+  return createHash('md5').update(content.toLowerCase()).digest('hex');
+};
+
 export const randomNoRepeats = arr => {
   let copy = arr.slice(0);
   return (() => {
@@ -31,6 +40,49 @@ export const numberFormatter = (num, digits) => {
   return item ? (num / item.value).toFixed(digits).replace(rx, '$1') + item.symbol : '0';
 };
 
+export const capitalize = str => str.charAt(0).toUpperCase() + str.slice(1);
+
+// API Fetching Collections
+const res =
+  process.env.START === false
+    ? await fetch(`${process.env.base_URL}/collections/anime`, {
+        headers: {
+          'API-Key': `${process.env.API_KEY}`,
+        },
+      }).catch(console.error)
+    : 'API Not Running';
+
+const dataA = process.env.START === false ? await res?.json() : 'API Not Running';
+
+const response =
+  process.env.START === false
+    ? await fetch(`${process.env.base_URL}/collections/music`, {
+        headers: {
+          'API-Key': `${process.env.API_KEY}`,
+        },
+      }).catch(console.error)
+    : 'API Not Running';
+
+const dataM = process.env.START === false ? await response?.json() : 'API Not Running';
+
+export const anime = dataA?.Anime === undefined ? 'No anime found' : randomNoRepeats(dataA?.Anime);
+export const music = dataM?.Music === undefined ? 'No music found' : randomNoRepeats(dataM?.Music);
+
+// export const embedCreate = (
+//   { name: author, iconURL: iconURL },
+//   { color: color },
+//   { description: description },
+//   { text: footer },
+// ) => {
+//   const embed = new MessageEmbed()
+//     .setAuthor({ name: author, iconURL: iconURL })
+//     .setColor(color)
+//     .setDescription(description)
+//     .setFooter({ text: footer })
+//     .setTimestamp();
+
+//   return embed;
+// };
 // import translator from '@vitalets/google-translate-api';
 
 // export const translate = async (str, lang) => {

@@ -1,22 +1,7 @@
-import { SlashCommandBuilder } from '@discordjs/builders';
-import { ChannelType } from 'discord-api-types/v9';
 import { setTimeout as wait } from 'node:timers/promises';
+import { setupCommand } from './interactions/commands.js';
 
-export const data = new SlashCommandBuilder()
-  .setName('setup')
-  .setDescription('Setup the Roles, channels, Prefix before you begin')
-  .setDefaultPermission(false)
-  .addChannelOption(option =>
-    option
-      .setName('modlog')
-      .setDescription('The modlog channel')
-      .setRequired(true)
-      .addChannelType(ChannelType.GuildText),
-  )
-  .addChannelOption(option =>
-    option.setName('logs').setDescription('Logging channel').setRequired(true).addChannelType(ChannelType.GuildText),
-  )
-  .addRoleOption(option => option.setName('moderator').setDescription('Moderator role').setRequired(true));
+export const data = setupCommand;
 
 export async function execute(interaction) {
   const { client, guildId, options } = interaction;
@@ -35,7 +20,9 @@ export async function execute(interaction) {
     return interaction.reply({ content: 'Moderator role not found', ephemeral: true });
   }
 
-  const brunoGuild = await client.bruno.get(`SELECT * FROM guild WHERE guildid = '${guildId}'`);
+  const brunoGuild = await client.bruno.get(
+    `SELECT logchannelId, modLogChannelID, modRoleID FROM guild WHERE guildid = '${guildId}'`,
+  );
 
   if (brunoGuild === undefined) {
     client.bruno.exec(
