@@ -196,3 +196,13 @@ export const warnCommand = new SlashCommandBuilder()
 export const podiumCommand = new SlashCommandBuilder()
   .setName('podium')
   .setDescription('A scoreboard showing the names and current scores of the leading competitors');
+
+export const reportCommand = new SlashCommandBuilder()
+  .setName('report')
+  .setDescription('Report a user for DM ads or spam')
+  .addUserOption(option =>
+    option.setName('user').setDescription('The member to report [Mention | ID]').setRequired(true),
+  )
+  .addStringOption(option =>
+    option.setName('proof').setDescription('Proof Screenshot* & Reason, If any').setRequired(true),
+  );
