@@ -1,4 +1,5 @@
 import { MessageActionRow, MessageButton, MessageEmbed } from 'discord.js';
+import ms from 'ms';
 import { setTimeout as wait } from 'node:timers/promises';
 import { BanCommand } from './interactions/commands.js';
 
@@ -47,12 +48,14 @@ export async function execute(interaction) {
   const modLogs = guild.channels.cache.get(logs?.modLogChannelID);
 
   // Updating Bans count to this banned user
-  const history = await client.history.get(`SELECT bans, reports FROM history WHERE userid = '${member.id}'`);
+  const history = await client.history.get(`SELECT bans FROM history WHERE userid = '${member.id}'`);
 
-  if (history?.bans === undefined || history?.bans === null) {
+  if (history?.bans === undefined) {
     await client.history.exec(`INSERT INTO history (userid, bans) VALUES ('${member.id}', 1)`);
+  } else if (history?.bans === null) {
+    await client.history.exec(`UPDATE history SET bans = 1 WHERE userid = '${member.id}'`);
   } else {
-    await client.history.exec(`UPDATE history SET bans = bans + 1 WHERE userid = ${member.id}`);
+    await client.history.exec(`UPDATE history SET bans = bans + 1 WHERE userid = '${member.id}'`);
   }
 
   // Button for Reporting a user
@@ -63,10 +66,14 @@ export async function execute(interaction) {
   const collector = interaction.channel.createMessageComponentCollector({ filter, time: 30000 });
   collector.on('collect', async i => {
     if (i.customId === 'report') {
-      if (history?.reports === undefined || history?.reports === null) {
+      const rdata = await client.history.get(`SELECT reports FROM history WHERE userid = '${member.id}'`);
+
+      if (rdata?.reports === undefined) {
         await client.history.exec(`INSERT INTO history (userid, reports) VALUES ('${member.id}', 1)`);
+      } else if (rdata?.reports === null) {
+        await client.history.exec(`UPDATE history SET reports = 1 WHERE userid = '${member.id}'`);
       } else {
-        await client.history.exec(`UPDATE history SET reports = reports + 1 WHERE userid = ${member.id}`);
+        await client.history.exec(`UPDATE history SET reports = reports + 1 WHERE userid = '${member.id}'`);
       }
 
       await i.update({ content: '\\☕ Thanks for the report!', components: [] });
@@ -76,7 +83,7 @@ export async function execute(interaction) {
   const owner = guild.ownerId === user.id ? 'Owner' : 'Moderator';
 
   await interaction.deferReply({ ephemeral: true });
-  await wait(4000);
+  await wait(ms('2s'));
 
   const embed = new MessageEmbed()
     .setAuthor({
