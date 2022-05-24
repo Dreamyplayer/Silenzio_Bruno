@@ -48,11 +48,11 @@ export async function execute(interaction) {
   const modLogs = guild.channels.cache.get(logs?.modLogChannelID);
 
   // Updating Bans count to this banned user
-  const history = await client.history.get(`SELECT bans FROM history WHERE userid = '${member.id}'`);
+  const historyLogs = await client.history.get(`SELECT bans FROM history WHERE userid = '${member.id}'`);
 
-  if (history?.bans === undefined) {
+  if (historyLogs?.bans === undefined) {
     await client.history.exec(`INSERT INTO history (userid, bans) VALUES ('${member.id}', 1)`);
-  } else if (history?.bans === null) {
+  } else if (historyLogs?.bans === null) {
     await client.history.exec(`UPDATE history SET bans = 1 WHERE userid = '${member.id}'`);
   } else {
     await client.history.exec(`UPDATE history SET bans = bans + 1 WHERE userid = '${member.id}'`);
